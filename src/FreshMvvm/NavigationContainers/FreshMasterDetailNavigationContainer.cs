@@ -50,6 +50,18 @@ namespace FreshMvvm
             if (_pages.Count == 1)
                 Detail = navigationContainer;
         }
+        public virtual void AddPage(string modelName, string title, object data = null)
+        {
+            var pageModelType = Type.GetType(modelName);
+            var page = FreshPageModelResolver.ResolvePageModel(pageModelType, null);
+            page.GetModel().CurrentNavigationServiceName = NavigationServiceName;
+            _pagesInner.Add(page);
+            var navigationContainer = CreateContainerPage(page);
+            _pages.Add(title, navigationContainer);
+            _pageNames.Add(title);
+            if (_pages.Count == 1)
+                Detail = navigationContainer;
+        }
 
         internal Page CreateContainerPageSafe (Page page)
         {
@@ -114,11 +126,20 @@ namespace FreshMvvm
         {
             if (Master is NavigationPage)
                 ((NavigationPage)Master).NotifyAllChildrenPopped();
+            if (Master is IFreshNavigationService)
+                ((IFreshNavigationService)Master).NotifyChildrenPageWasPopped();
+            
             foreach (var page in this.Pages.Values)
             {
                 if (page is NavigationPage)
                     ((NavigationPage)page).NotifyAllChildrenPopped();
+                if (page is IFreshNavigationService)
+                    ((IFreshNavigationService)page).NotifyChildrenPageWasPopped();
             }
+            if (this.Pages != null && !this.Pages.ContainsValue(Detail) && Detail is NavigationPage)
+                ((NavigationPage)Detail).NotifyAllChildrenPopped();
+            if (this.Pages != null && !this.Pages.ContainsValue(Detail) && Detail is IFreshNavigationService)
+                ((IFreshNavigationService)Detail).NotifyChildrenPageWasPopped();
         }
 
         public Task<FreshBasePageModel> SwitchSelectedRootPageModel<T>() where T : FreshBasePageModel
